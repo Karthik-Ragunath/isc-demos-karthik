@@ -39,7 +39,7 @@ model = AutoModelForCausalLM.from_pretrained(
 # model = LoraModel(model, lora_config, adapter_name).to("cuda")
 
 # Load consolidated adapter weights
-adapter_path = "/shared/artifacts/consolidated_checkpoint"
+adapter_path = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora"
 config = PeftConfig.from_pretrained(adapter_path)
 model = PeftModel.from_pretrained(model, adapter_path).to("cuda")
 
