@@ -2,7 +2,7 @@
 import torch
 import torch.distributed.checkpoint as dcp
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import LoraModel, LoraConfig
+from peft import LoraModel, LoraConfig, PeftConfig, PeftModel
 
 from fsdp_utils import AppState
 
@@ -30,14 +30,19 @@ model = AutoModelForCausalLM.from_pretrained(
     torch_dtype=torch.bfloat16
 )
 
-lora_config = LoraConfig(
-    r=16,
-    lora_alpha=32,
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    lora_dropout=0, # set to zero to see identical loss on all ranks
-)
+# lora_config = LoraConfig(
+#     r=16,
+#     lora_alpha=32,
+#     target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+#     lora_dropout=0, # set to zero to see identical loss on all ranks
+# )
+# model = LoraModel(model, lora_config, adapter_name).to("cuda")
 
-model = LoraModel(model, lora_config, adapter_name).to("cuda")
+# Load consolidated adapter weights
+adapter_path = "/shared/artifacts/consolidated_checkpoint"
+config = PeftConfig.from_pretrained(adapter_path)
+model = PeftModel.from_pretrained(model, adapter_path).to("cuda")
+
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
 state_dict = { "app": AppState(model, optimizer)}
 dcp.load(state_dict=state_dict, checkpoint_id="/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_backup") ## UPDATE WITH PATH TO CHECKPOINT DIRECTORY
