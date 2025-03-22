@@ -38,30 +38,35 @@ lora_config = LoraConfig(
 )
 model = LoraModel(model, lora_config, ADAPTER_NAME)
 
-# # Load consolidated adapter weights
-# adapter_path = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed"
-# config = PeftConfig.from_pretrained(adapter_path)
-# model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False).to("cuda")
+use_lora_adapter = True
 
-# Manually load weights with custom key mapping
-# state_dict = torch.load("/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed/adapter_model.bin")
-adapter_dir = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_95_consolidated_lora"
-state_dict = torch.load(f"{adapter_dir}/adapter_model.bin")
-mapped_state_dict = {}
+if use_lora_adapter:
 
-for name, param in state_dict.items():
-    # Map from your checkpoint format to PEFT's expected format
-    if "lora_A.weight" in name:
-        new_name = name.replace("lora_A.weight", "lora_A.default.weight")
-        new_name = "base_model." + new_name
-        mapped_state_dict[new_name] = param
-    elif "lora_B.weight" in name:
-        new_name = name.replace("lora_B.weight", "lora_B.default.weight")
-        new_name = "base_model." + new_name
-        mapped_state_dict[new_name] = param
+    # # Load consolidated adapter weights
+    # adapter_path = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed"
+    # config = PeftConfig.from_pretrained(adapter_path)
+    # model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False).to("cuda")
 
-# Load the mapped weights
-model.load_state_dict(mapped_state_dict, strict=False)
+    # Manually load weights with custom key mapping
+    # state_dict = torch.load("/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed/adapter_model.bin")
+    adapter_dir = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_95_consolidated_lora"
+    state_dict = torch.load(f"{adapter_dir}/adapter_model.bin")
+    mapped_state_dict = {}
+
+    for name, param in state_dict.items():
+        # Map from your checkpoint format to PEFT's expected format
+        if "lora_A.weight" in name:
+            new_name = name.replace("lora_A.weight", "lora_A.default.weight")
+            new_name = "base_model." + new_name
+            mapped_state_dict[new_name] = param
+        elif "lora_B.weight" in name:
+            new_name = name.replace("lora_B.weight", "lora_B.default.weight")
+            new_name = "base_model." + new_name
+            mapped_state_dict[new_name] = param
+
+    # Load the mapped weights
+    model.load_state_dict(mapped_state_dict, strict=False)
+
 model = model.to("cuda")
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
