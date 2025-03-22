@@ -2,8 +2,8 @@ import torch
 import os
 
 # Load your current adapter state dict
-adapter_path = "/shared/artifacts/consolidated_checkpoint/adapter_model.bin"
-output_path = "/shared/artifacts/fixed_checkpoint"
+adapter_path = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora/adapter_model.bin"
+output_path = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed"
 os.makedirs(output_path, exist_ok=True)
 
 # Load the state dictionary
