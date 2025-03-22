@@ -2,8 +2,8 @@
 import torch
 import torch.distributed.checkpoint as dcp
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import LoraModel, LoraConfig
-
+from peft import LoraModel, LoraConfig, get_peft_model_state_dict
+import os
 from fsdp_utils import AppState
 
 adapter_name = "ExampleLora"
@@ -39,25 +39,19 @@ lora_config = LoraConfig(
 
 model = LoraModel(model, lora_config, adapter_name).to("cuda")
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
-state_dict = { "app": AppState(model, optimizer)}
+state_dict = {"app": AppState(model, optimizer)}
 dcp.load(state_dict=state_dict, checkpoint_id="/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_backup") ## UPDATE WITH PATH TO CHECKPOINT DIRECTORY
 
-prompt = "What is the coefficient of $x^2y^6$ in the expansion of $\left(\frac{3}{5}x-\frac{y}{2}\right)^8$? Express your answer as a common fraction."
+# Extract just the LoRA weights (using the PEFT utility function)
+lora_state_dict = get_peft_model_state_dict(model, adapter_name=adapter_name)
 
-# https://arxiv.org/abs/2501.12948
-deepseek_r1_input = f'''
-A conversation between User and Assistant. The user asks a question, and the Assistant solves it.
-The assistant first thinks about the reasoning process in the mind and then provides the user
-with the answer. The reasoning process and answer are enclosed within <think> </think> and
-<answer> </answer> tags, respectively, i.e., <think> reasoning process here </think>
-<answer> answer here </answer>. User: {prompt}. Assistant:'''
+# Save the consolidated adapter weights to a single file
+# output_dir = "/shared/artifacts/consolidated_checkpoint"
+output_dir = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora"
+os.makedirs(output_dir, exist_ok=True)
+torch.save(lora_state_dict, os.path.join(output_dir, "adapter_model.bin"))
 
-encoding = tokenizer(deepseek_r1_input, return_tensors="pt")
+# Save the adapter config
+lora_config.save_pretrained(output_dir)
 
-input_ids = encoding['input_ids'].to("cuda")
-attention_mask = encoding['attention_mask'].to("cuda")
-
-generate_ids = model.generate(input_ids, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id, max_new_tokens=100, do_sample=True, temperature=0.8)
-answer = tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
-
-print(answer[0])
+print(f"Consolidated checkpoint saved to {output_dir}")
