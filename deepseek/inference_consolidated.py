@@ -45,7 +45,8 @@ model = LoraModel(model, lora_config, ADAPTER_NAME)
 
 # Manually load weights with custom key mapping
 # state_dict = torch.load("/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed/adapter_model.bin")
-state_dict = torch.load("/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora/adapter_model.bin")
+adapter_dir = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_95_consolidated_lora"
+state_dict = torch.load(f"{adapter_dir}/adapter_model.bin")
 mapped_state_dict = {}
 
 for name, param in state_dict.items():

@@ -40,14 +40,15 @@ lora_config = LoraConfig(
 model = LoraModel(model, lora_config, adapter_name).to("cuda")
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
 state_dict = {"app": AppState(model, optimizer)}
-dcp.load(state_dict=state_dict, checkpoint_id="/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_backup") ## UPDATE WITH PATH TO CHECKPOINT DIRECTORY
+checkpoint_dir = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_95"
+dcp.load(state_dict=state_dict, checkpoint_id=checkpoint_dir) ## UPDATE WITH PATH TO CHECKPOINT DIRECTORY
 
 # Extract just the LoRA weights (using the PEFT utility function)
 lora_state_dict = get_peft_model_state_dict(model, adapter_name=adapter_name)
 
 # Save the consolidated adapter weights to a single file
 # output_dir = "/shared/artifacts/consolidated_checkpoint"
-output_dir = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora"
+output_dir = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_95_consolidated_lora"
 os.makedirs(output_dir, exist_ok=True)
 torch.save(lora_state_dict, os.path.join(output_dir, "adapter_model.bin"))
 
