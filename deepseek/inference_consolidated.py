@@ -6,7 +6,7 @@ from peft import LoraModel, LoraConfig, PeftConfig, PeftModel
 
 from fsdp_utils import AppState
 
-adapter_name = "ExampleLora"
+ADAPTER_NAME = "ExampleLora"
 
 # INFO: This is a helper to map model names to StrongCompute Dataset ID's which store their weights!
 model_weight_ids = {
@@ -30,18 +30,38 @@ model = AutoModelForCausalLM.from_pretrained(
     torch_dtype=torch.bfloat16
 )
 
-# lora_config = LoraConfig(
-#     r=16,
-#     lora_alpha=32,
-#     target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-#     lora_dropout=0, # set to zero to see identical loss on all ranks
-# )
-# model = LoraModel(model, lora_config, adapter_name).to("cuda")
+lora_config = LoraConfig(
+    r=16,
+    lora_alpha=32,
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
+    lora_dropout=0, # set to zero to see identical loss on all ranks
+)
+model = LoraModel(model, lora_config, ADAPTER_NAME)
 
-# Load consolidated adapter weights
-adapter_path = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora"
-config = PeftConfig.from_pretrained(adapter_path)
-model = PeftModel.from_pretrained(model, adapter_path).to("cuda")
+# # Load consolidated adapter weights
+# adapter_path = "/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed"
+# config = PeftConfig.from_pretrained(adapter_path)
+# model = PeftModel.from_pretrained(model, adapter_path, is_trainable=False).to("cuda")
+
+# Manually load weights with custom key mapping
+# state_dict = torch.load("/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora_fixed/adapter_model.bin")
+state_dict = torch.load("/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_consolidated_lora/adapter_model.bin")
+mapped_state_dict = {}
+
+for name, param in state_dict.items():
+    # Map from your checkpoint format to PEFT's expected format
+    if "lora_A.weight" in name:
+        new_name = name.replace("lora_A.weight", "lora_A.default.weight")
+        new_name = "base_model." + new_name
+        mapped_state_dict[new_name] = param
+    elif "lora_B.weight" in name:
+        new_name = name.replace("lora_B.weight", "lora_B.default.weight")
+        new_name = "base_model." + new_name
+        mapped_state_dict[new_name] = param
+
+# Load the mapped weights
+model.load_state_dict(mapped_state_dict, strict=False)
+model = model.to("cuda")
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
 state_dict = {"app": AppState(model, optimizer)}
