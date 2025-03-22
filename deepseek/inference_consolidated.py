@@ -44,7 +44,7 @@ config = PeftConfig.from_pretrained(adapter_path)
 model = PeftModel.from_pretrained(model, adapter_path).to("cuda")
 
 optimizer = torch.optim.AdamW(model.parameters(), lr=1e-5)
-state_dict = { "app": AppState(model, optimizer)}
+state_dict = {"app": AppState(model, optimizer)}
 dcp.load(state_dict=state_dict, checkpoint_id="/shared/artifacts/18142399-96ff-4846-b55b-3be3822720f6/checkpoints/AtomicDirectory_checkpoint_56_backup") ## UPDATE WITH PATH TO CHECKPOINT DIRECTORY
 
 prompt = "What is the coefficient of $x^2y^6$ in the expansion of $\left(\frac{3}{5}x-\frac{y}{2}\right)^8$? Express your answer as a common fraction."
@@ -62,7 +62,7 @@ encoding = tokenizer(deepseek_r1_input, return_tensors="pt")
 input_ids = encoding['input_ids'].to("cuda")
 attention_mask = encoding['attention_mask'].to("cuda")
 
-generate_ids = model.generate(input_ids, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id, max_new_tokens=100, do_sample=True, temperature=0.8)
+generate_ids = model.generate(input_ids, attention_mask=attention_mask, pad_token_id=tokenizer.eos_token_id, max_new_tokens=500, do_sample=True, temperature=0.8)
 answer = tokenizer.batch_decode(generate_ids, skip_special_tokens=True, clean_up_tokenization_spaces=False)
 
 print(answer[0])
